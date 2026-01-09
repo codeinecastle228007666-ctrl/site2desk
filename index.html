@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>site2desk — Website shortcuts on desktop</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Create website shortcuts on your desktop in seconds. No install." />
+
+  <link rel="stylesheet" href="ui.css" />
+  <link rel="manifest" href="manifest.json" />
+
+  <script src="libs/sortable.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <strong>site2desk</strong>
+    <button id="premiumBtn">💎 Premium</button>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="group active">All</div>
+      <div class="group">Work</div>
+      <div class="group">Study</div>
+      <button id="addGroup">+ Add group</button>
+    </aside>
+
+    <main>
+      <button id="addShortcut">+ Add Shortcut</button>
+      <div id="grid" class="grid"></div>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

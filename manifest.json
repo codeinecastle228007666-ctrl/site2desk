@@ -1,0 +1,8 @@
+{
+  "name": "site2desk",
+  "short_name": "site2desk",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a6fa5"
+}
