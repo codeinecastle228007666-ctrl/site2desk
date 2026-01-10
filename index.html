@@ -1,38 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>site2desk — Website shortcuts on desktop</title>
-
+  <title>Site2Desk — сайты на рабочем столе</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Create website shortcuts on your desktop in seconds. No install." />
-
-  <link rel="stylesheet" href="ui.css" />
-  <link rel="manifest" href="manifest.json" />
-
-  <script src="libs/sortable.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <header>
-    <strong>site2desk</strong>
-    <button id="premiumBtn">💎 Premium</button>
-  </header>
 
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="group active">All</div>
-      <div class="group">Work</div>
-      <div class="group">Study</div>
-      <button id="addGroup">+ Add group</button>
-    </aside>
+<header>
+  <h1>🖥️ Site2Desk</h1>
+  <p>Создавай ярлыки сайтов для рабочего стола</p>
+</header>
 
-    <main>
-      <button id="addShortcut">+ Add Shortcut</button>
-      <div id="grid" class="grid"></div>
-    </main>
+<main>
+  <section class="creator">
+    <input id="name" placeholder="Название сайта" />
+    <input id="url" placeholder="https://wildberries.ru" />
+    <button id="add">➕ Добавить ярлык</button>
+    <p id="limitMsg"></p>
+  </section>
+
+  <section id="grid" class="grid"></section>
+</main>
+
+<!-- PREMIUM MODAL -->
+<div id="premiumModal" class="modal hidden">
+  <div class="modal-box">
+    <h2>🚀 Site2Desk Premium</h2>
+    <ul>
+      <li>✔️ Без лимита ярлыков</li>
+      <li>✔️ Кастомные иконки</li>
+      <li>✔️ Экспорт</li>
+    </ul>
+    <button id="buy">Разблокировать за 199 ₽</button>
+    <button id="close">Отмена</button>
   </div>
+</div>
 
-  <script type="module" src="app.js"></script>
+<div id="toast"></div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>

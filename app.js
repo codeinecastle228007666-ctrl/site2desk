@@ -1,64 +1,69 @@
-import { buyPremium } from './payments.js';
+import { buyPremium } from "./payments.js";
 
-const grid = document.getElementById('grid');
-const addBtn = document.getElementById('addShortcut');
-const premiumBtn = document.getElementById('premiumBtn');
+const grid = document.getElementById("grid");
+const nameInput = document.getElementById("name");
+const urlInput = document.getElementById("url");
+const addBtn = document.getElementById("add");
+const modal = document.getElementById("premiumModal");
+const buyBtn = document.getElementById("buy");
+const closeBtn = document.getElementById("close");
+const limitMsg = document.getElementById("limitMsg");
+const toast = document.getElementById("toast");
 
-let shortcuts = JSON.parse(localStorage.getItem('shortcuts') || '[]');
-let isPremium = localStorage.getItem('premium') === 'true';
+let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+let premium = localStorage.getItem("premium") === "true";
 
-// premium after payment
-if (new URLSearchParams(location.search).get('premium')) {
-  localStorage.setItem('premium', 'true');
-  isPremium = true;
+// activate premium after payment
+if (new URLSearchParams(location.search).get("premium")) {
+  localStorage.setItem("premium", "true");
+  premium = true;
+  showToast("Premium активирован 🚀");
 }
-
-function save() {
-  localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-}
-
-function render() {
-  grid.innerHTML = '';
-  shortcuts.forEach(s => {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.innerHTML = `
-      <div style="font-size:32px">🌐</div>
-      <div>${s.name}</div>
-    `;
-    el.onclick = () => window.open(s.url, '_blank');
-    grid.appendChild(el);
-  });
-}
-
-addBtn.onclick = () => {
-  if (!isPremium && shortcuts.length >= 3) {
-    alert('Free limit reached. Upgrade to Premium.');
-    buyPremium();
-    return;
-  }
-
-  const name = prompt('Site name');
-  const url = prompt('Site URL');
-  if (!name || !url) return;
-
-  shortcuts.push({ name, url });
-  save();
-  render();
-};
-
-premiumBtn.onclick = buyPremium;
 
 render();
 
-// drag & drop
-new Sortable(grid, {
-  animation: 150,
-  onEnd() {
-    const items = [...grid.children];
-    shortcuts = items.map(el =>
-      shortcuts.find(s => s.name === el.innerText)
-    );
-    save();
+addBtn.onclick = () => {
+  if (!premium && shortcuts.length >= 3) {
+    modal.classList.remove("hidden");
+    return;
   }
-});
+
+  const name = nameInput.value.trim();
+  const url = urlInput.value.trim().startsWith("http")
+    ? urlInput.value.trim()
+    : "https://" + urlInput.value.trim();
+
+  if (!name || !url) return;
+
+  shortcuts.push({ id: Date.now(), name, url });
+  localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
+
+  nameInput.value = "";
+  urlInput.value = "";
+
+  render();
+};
+
+function render() {
+  grid.innerHTML = "";
+  shortcuts.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h3>${s.name}</h3><p>${new URL(s.url).hostname}</p>`;
+    card.onclick = () => window.open(s.url, "_blank");
+    grid.appendChild(card);
+  });
+
+  limitMsg.textContent = premium
+    ? "Premium активен"
+    : `Free: ${shortcuts.length}/3`;
+}
+
+buyBtn.onclick = buyPremium;
+closeBtn.onclick = () => modal.classList.add("hidden");
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.style.display = "block";
+  setTimeout(() => (toast.style.display = "none"), 3000);
+}
