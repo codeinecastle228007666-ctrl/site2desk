@@ -12,46 +12,59 @@ header {
   background: linear-gradient(135deg,#6366f1,#8b5cf6);
 }
 
-main { padding: 20px; max-width: 900px; margin: auto; }
-
-.creator {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+main {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
 }
 
-.creator input {
-  flex: 1;
+.creator {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.creator input, .creator select {
   padding: 12px;
   border-radius: 8px;
   border: none;
 }
 
 .creator button {
-  padding: 12px 18px;
-  border-radius: 8px;
-  border: none;
+  grid-column: span 2;
+  padding: 14px;
   background: #22c55e;
+  border: none;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
 }
 
 .grid {
-  margin-top: 30px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+  grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
   gap: 15px;
 }
 
 .card {
   background: #1e293b;
-  padding: 20px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 14px;
   cursor: pointer;
   transition: 0.2s;
 }
 
-.card:hover { transform: scale(1.05); }
+.card:hover { transform: translateY(-4px); }
+
+.group {
+  font-size: 12px;
+  opacity: .6;
+}
+
+.icon {
+  font-size: 28px;
+}
 
 .modal {
   position: fixed;
@@ -62,20 +75,13 @@ main { padding: 20px; max-width: 900px; margin: auto; }
   align-items: center;
 }
 
-.hidden { display: none; }
+.hidden { display:none }
 
 .modal-box {
   background: #020617;
   padding: 30px;
   border-radius: 16px;
   max-width: 300px;
-  text-align: center;
-}
-
-.modal-box button {
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px;
 }
 
 #toast {

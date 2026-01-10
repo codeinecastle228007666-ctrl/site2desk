@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Site2Desk — сайты на рабочем столе</title>
+  <title>Site2Desk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -10,31 +10,50 @@
 
 <header>
   <h1>🖥️ Site2Desk</h1>
-  <p>Создавай ярлыки сайтов для рабочего стола</p>
+  <p>Ярлыки сайтов прямо на рабочем столе</p>
 </header>
 
 <main>
-  <section class="creator">
-    <input id="name" placeholder="Название сайта" />
-    <input id="url" placeholder="https://wildberries.ru" />
-    <button id="add">➕ Добавить ярлык</button>
-    <p id="limitMsg"></p>
-  </section>
 
-  <section id="grid" class="grid"></section>
+<section class="creator">
+  <input id="name" placeholder="Название сайта" />
+  <input id="url" placeholder="https://example.com" />
+
+  <select id="group">
+    <option value="Общее">📁 Общее</option>
+    <option value="Работа">💼 Работа</option>
+    <option value="Покупки">🛒 Покупки</option>
+    <option value="Развлечения">🎮 Развлечения</option>
+  </select>
+
+  <select id="iconType">
+    <option value="favicon">🌐 Favicon</option>
+    <option value="emoji">😀 Emoji</option>
+    <option value="custom">🖼️ Кастом (Premium)</option>
+  </select>
+
+  <input id="emoji" placeholder="😀" style="display:none" />
+  <input id="customIcon" type="file" accept="image/*" style="display:none" />
+
+  <button id="add">➕ Добавить ярлык</button>
+  <p id="limitMsg"></p>
+</section>
+
+<section id="grid" class="grid"></section>
+
 </main>
 
-<!-- PREMIUM MODAL -->
+<!-- PREMIUM -->
 <div id="premiumModal" class="modal hidden">
   <div class="modal-box">
-    <h2>🚀 Site2Desk Premium</h2>
+    <h2>🚀 Premium</h2>
     <ul>
-      <li>✔️ Без лимита ярлыков</li>
+      <li>✔️ Без лимита</li>
       <li>✔️ Кастомные иконки</li>
       <li>✔️ Экспорт</li>
     </ul>
-    <button id="buy">Разблокировать за 199 ₽</button>
-    <button id="close">Отмена</button>
+    <button id="buy">Купить за 199 ₽</button>
+    <button id="close">Закрыть</button>
   </div>
 </div>
 
