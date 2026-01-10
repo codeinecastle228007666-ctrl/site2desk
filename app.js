@@ -18,18 +18,15 @@ function showToast(text) {
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
-  // Управление видимостью эмодзи и загрузки иконок
   iconType.onchange = () => {
     emojiPicker.classList.toggle("hidden", iconType.value !== "emoji");
     customIcon.classList.toggle("hidden", iconType.value !== "custom");
     
-    // Если выбрана эмодзи, сбрасываем выбор файла
     if (iconType.value === "emoji") {
       customIcon.value = '';
     }
   };
   
-  // Обработчик клика по эмодзи
   emojiPicker.onclick = e => {
     if (e.target.textContent.trim()) {
       emojiPicker.dataset.value = e.target.textContent;
@@ -37,12 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
-  // Обработчик кнопки добавления
   addBtn.onclick = () => {
     addShortcut();
   };
   
-  // Обработчик нажатия Enter в полях ввода
   nameInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') addShortcut();
   });
@@ -51,22 +46,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key === 'Enter') addShortcut();
   });
   
-  // Загрузка кастомной иконки
   customIcon.onchange = function(e) {
     if (e.target.files.length > 0) {
       const file = e.target.files[0];
-      if (file.size > 1024 * 1024) { // 1MB лимит
+      if (file.size > 1024 * 1024) {
         showToast("Файл слишком большой (макс 1MB)");
         this.value = '';
       }
     }
   };
   
-  // Инициализируем рендер
   render();
 });
 
-function addShortcut() {
+async function addShortcut() {
   let name = nameInput.value.trim();
   let url = urlInput.value.trim();
 
@@ -82,12 +75,10 @@ function addShortcut() {
     return;
   }
 
-  // Проверяем URL
   try {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
     }
-    // Пытаемся создать URL объект для проверки
     new URL(url);
   } catch (error) {
     showToast("Некорректный URL");
@@ -96,39 +87,27 @@ function addShortcut() {
 
   let icon = "🌐";
   let iconUrl = "";
+  let iconData = null;
 
   if (iconType.value === "emoji") {
     icon = emojiPicker.dataset.value || "🌐";
-    iconUrl = "";
+    iconData = icon;
   } else if (iconType.value === "favicon") {
     icon = "🌐";
     try {
       const hostname = new URL(url).hostname;
       iconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+      
+      // Пробуем скачать favicon и конвертировать в data URL
+      showToast("Скачиваю иконку...");
+      iconData = await fetchFaviconAsDataURL(iconUrl);
     } catch {
-      iconUrl = "";
+      iconData = null;
     }
   } else if (iconType.value === "custom") {
     if (customIcon.files.length > 0) {
       const file = customIcon.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const item = {
-          id: Date.now(),
-          name,
-          url,
-          group: groupSelect.value,
-          icon: e.target.result,
-          iconType: 'custom'
-        };
-        shortcuts.push(item);
-        localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
-        render();
-        downloadShortcut(item);
-        resetForm();
-      };
-      reader.readAsDataURL(file);
-      return;
+      iconData = await readFileAsDataURL(file);
     } else {
       showToast("Выберите файл иконки");
       return;
@@ -140,7 +119,7 @@ function addShortcut() {
     name,
     url,
     group: groupSelect.value,
-    icon: iconType.value === 'favicon' ? iconUrl : icon,
+    icon: iconData || (iconType.value === 'favicon' ? iconUrl : icon),
     iconType: iconType.value
   };
   
@@ -148,8 +127,33 @@ function addShortcut() {
   localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
 
   render();
-  downloadShortcut(item);
+  await downloadShortcutWithIcon(item);
   resetForm();
+}
+
+async function fetchFaviconAsDataURL(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch favicon');
+    
+    const blob = await response.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('Could not fetch favicon:', error);
+    return null;
+  }
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
 }
 
 function resetForm() {
@@ -157,39 +161,102 @@ function resetForm() {
   urlInput.value = '';
   nameInput.focus();
   
-  // Сбрасываем дополнительные поля
   if (iconType.value === 'custom') {
     customIcon.value = '';
   }
 }
 
-function downloadShortcut({ name, url, icon, iconType }) {
+async function downloadShortcutWithIcon({ name, url, icon, iconType }) {
   try {
-    let iconFile = "";
+    let iconContent = "";
+    let fileName = `${name.replace(/[^\w\s]/gi, '')}.url`;
     
-    if (iconType === 'favicon' && icon && icon.startsWith("http")) {
-      iconFile = icon;
+    if (iconType === 'favicon' && icon && icon.startsWith("data:")) {
+      // Конвертируем data URL в ICO файл и скачиваем его
+      const icoFileName = `${name.replace(/[^\w\s]/gi, '')}.ico`;
+      
+      // Создаем .url файл
+      const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${icoFileName}\r\nIconIndex=0`;
+      
+      // Создаем ICO файл из data URL
+      const icoBlob = dataURLToBlob(icon);
+      
+      // Скачиваем оба файла
+      downloadFile(`${name}.url`, urlContent, 'text/plain');
+      await downloadBlob(icoFileName, icoBlob);
+      
+    } else if (iconType === 'custom' && icon && icon.startsWith("data:")) {
+      // Для кастомных иконок
+      const ext = icon.match(/^data:image\/(\w+);/)[1];
+      const iconFileName = `${name.replace(/[^\w\s]/gi, '')}.${ext}`;
+      
+      const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${iconFileName}\r\nIconIndex=0`;
+      
+      const iconBlob = dataURLToBlob(icon);
+      
+      downloadFile(`${name}.url`, urlContent, 'text/plain');
+      await downloadBlob(iconFileName, iconBlob);
+      
+    } else if (iconType === 'emoji') {
+      // Для эмодзи используем системные иконки
+      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
+      downloadFile(fileName, urlContent, 'text/plain');
+    } else {
+      // Без иконки
+      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
+      downloadFile(fileName, urlContent, 'text/plain');
     }
-    // Для кастомных иконок не добавляем IconFile, так как это data URL
-    
-    const content = `[InternetShortcut]
-URL=${url}
-${iconFile ? `IconFile=${iconFile}` : ''}
-IconIndex=0`;
-
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${name.replace(/[^\w\s]/gi, '')}.url`; // Убираем спецсимволы из имени файла
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
     
     showToast(`Ярлык "${name}" создан!`);
   } catch (error) {
     console.error("Ошибка создания ярлыка:", error);
-    showToast("Ошибка при создании ярлыка");
+    
+    // Fallback: создаем простой .url без иконки
+    try {
+      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
+      downloadFile(`${name}.url`, urlContent, 'text/plain');
+      showToast(`Ярлык создан (без иконки)`);
+    } catch (fallbackError) {
+      showToast("Ошибка при создании ярлыка");
+    }
   }
+}
+
+function dataURLToBlob(dataURL) {
+  const arr = dataURL.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  
+  return new Blob([u8arr], { type: mime });
+}
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function render() {
@@ -207,14 +274,11 @@ function render() {
     div.className = "card";
     
     let iconHTML = "";
-    if (s.icon && s.icon.startsWith("http")) {
-      // Если иконка - это URL (favicon)
-      iconHTML = `<img src="${s.icon}" alt="${s.name}" class="favicon-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🌐';">`;
-    } else if (s.icon && s.icon.startsWith("data:image")) {
-      // Если иконка - это data URL (кастомная иконка)
+    if (s.icon && s.icon.startsWith("data:")) {
       iconHTML = `<img src="${s.icon}" alt="${s.name}" class="favicon-img">`;
+    } else if (s.icon && s.icon.startsWith("http")) {
+      iconHTML = `<img src="${s.icon}" alt="${s.name}" class="favicon-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🌐';">`;
     } else {
-      // Если иконка - эмодзи или текст
       iconHTML = `<div class="emoji-icon">${s.icon || "🌐"}</div>`;
     }
     
@@ -225,13 +289,14 @@ function render() {
       <div class="card-actions">
         <button class="open-btn" data-url="${s.url}">↗</button>
         <button class="delete-btn" data-id="${s.id}">×</button>
+        <button class="download-btn" data-id="${s.id}" title="Скачать ярлык">↓</button>
       </div>
     `;
     
     grid.appendChild(div);
   });
   
-  // Добавляем обработчики для кнопок
+  // Обработчики кнопок
   document.querySelectorAll('.open-btn').forEach(btn => {
     btn.onclick = function(e) {
       e.stopPropagation();
@@ -253,7 +318,18 @@ function render() {
     };
   });
   
-  // Клик по карточке тоже открывает сайт
+  document.querySelectorAll('.download-btn').forEach(btn => {
+    btn.onclick = async function(e) {
+      e.stopPropagation();
+      const id = parseInt(this.getAttribute('data-id'));
+      const shortcut = shortcuts.find(s => s.id === id);
+      if (shortcut) {
+        showToast("Создаю ярлык...");
+        await downloadShortcutWithIcon(shortcut);
+      }
+    };
+  });
+  
   document.querySelectorAll('.card').forEach(card => {
     card.onclick = function() {
       const url = this.querySelector('.open-btn')?.getAttribute('data-url');
