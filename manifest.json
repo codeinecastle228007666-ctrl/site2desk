@@ -1,8 +1,16 @@
 {
-  "name": "site2desk",
-  "short_name": "site2desk",
-  "start_url": "/",
+  "name": "Site2Desk - Создатель ярлыков",
+  "short_name": "Site2Desk",
+  "description": "Создание ярлыков сайтов на рабочий стол с иконками",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4a6fa5"
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTUtMTAtNXptMCAyMkwyIDE3bDEwLTUgMTAgNS0xMCA1eiIvPjxwYXRoIGQ9Ik0yIDEybDEwIDUgMTAtNU0xMiAydjIwIi8+PC9zdmc+",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
 }

@@ -2,52 +2,102 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Site2Desk</title>
+  <title>Site2Desk - Создатель ярлыков для рабочего стола</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Создавайте ярлыки сайтов на рабочий стол с иконками" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖥️</text></svg>">
 </head>
 <body>
 
 <header>
   <h1>🖥️ Site2Desk</h1>
-  <p>Ярлыки сайтов прямо на рабочем столе</p>
+  <p>Создавайте ярлыки сайтов прямо на рабочий стол с сохранением иконок</p>
 </header>
 
 <main>
 
 <section class="creator">
-  <input id="name" placeholder="Название сайта" />
-  <input id="url" placeholder="https://example.com" />
+  <h2 style="margin-top: 0; margin-bottom: 15px; color: #e5e7eb;">Создать новый ярлык</h2>
+  
+  <input id="name" placeholder="Название сайта (например: Google)" autocomplete="off" />
+  <input id="url" placeholder="https://example.com" type="url" autocomplete="off" />
 
   <select id="group">
     <option>📁 Общее</option>
     <option>💼 Работа</option>
     <option>🛒 Покупки</option>
     <option>🎮 Развлечения</option>
+    <option>📚 Образование</option>
+    <option>💬 Соцсети</option>
   </select>
 
   <select id="iconType">
-    <option value="favicon">🌐 Favicon</option>
-    <option value="emoji">😀 Emoji</option>
-    <option value="custom">🖼️ Кастом (Premium)</option>
+    <option value="favicon">🌐 Favicon сайта (автоматически)</option>
+    <option value="emoji">😀 Emoji (выберите эмодзи)</option>
+    <option value="custom">🖼️ Загрузить свою иконку</option>
   </select>
 
   <div id="emojiPicker" class="emoji-picker hidden">
-    😀 😎 🚀 🛒 🎮 💼 📁 ⭐ ❤️ 🔥 🌐
+    <span>😀</span><span>😎</span><span>🚀</span><span>🛒</span><span>🎮</span>
+    <span>💼</span><span>📁</span><span>⭐</span><span>❤️</span><span>🔥</span>
+    <span>🌐</span><span>🔍</span><span>📧</span><span>🎵</span><span>📺</span>
+    <span>💻</span><span>📱</span><span>🔒</span><span>💰</span><span>🎯</span>
   </div>
 
-  <input id="customIcon" type="file" accept="image/*" class="hidden" />
+  <input id="customIcon" type="file" accept="image/png, image/jpeg, image/svg+xml, image/ico" class="hidden" />
 
   <button id="add">➕ Добавить ярлык</button>
-  <p id="limitMsg"></p>
+  
+  <div style="margin-top: 10px; padding: 12px; background: #0c4a6e; border-radius: 8px; font-size: 0.9rem;">
+    💡 <strong>Как использовать:</strong> Заполните форму и нажмите кнопку. Файл .url скачается автоматически. 
+    Перетащите его на рабочий стол!
+  </div>
 </section>
 
-<section id="grid" class="grid"></section>
+<section class="shortcuts-section">
+  <h2 style="color: #e5e7eb; margin-bottom: 20px;">
+    📋 Ваши ярлыки (<span id="count">0</span>)
+    <button id="clearAll" style="float: right; background: #ef4444; padding: 8px 16px; font-size: 0.9rem;">🗑️ Очистить все</button>
+  </h2>
+  
+  <div id="grid" class="grid">
+    <!-- Ярлыки будут добавляться сюда -->
+  </div>
+</section>
 
 </main>
 
 <div id="toast"></div>
 
-<script type="module" src="app.js"></script>
+<script src="app.js"></script>
+<script>
+  // Добавляем кнопку очистки
+  document.addEventListener('DOMContentLoaded', function() {
+    const clearBtn = document.getElementById('clearAll');
+    if (clearBtn) {
+      clearBtn.onclick = function() {
+        if (confirm("Удалить ВСЕ ярлыки? Это действие нельзя отменить.")) {
+          localStorage.removeItem('shortcuts');
+          location.reload();
+        }
+      };
+    }
+    
+    // Обновляем счетчик ярлыков
+    function updateCount() {
+      const countEl = document.getElementById('count');
+      if (countEl) {
+        const shortcuts = JSON.parse(localStorage.getItem('shortcuts') || '[]');
+        countEl.textContent = shortcuts.length;
+      }
+    }
+    
+    // Обновляем счетчик каждую секунду
+    setInterval(updateCount, 1000);
+    updateCount();
+  });
+</script>
 </body>
 </html>
