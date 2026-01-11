@@ -9,6 +9,12 @@ const addBtn = document.getElementById("add");
 const grid = document.getElementById("grid");
 const toast = document.getElementById("toast");
 
+// В самом начале файла, после const toast = document.getElementById("toast");
+// Добавьте проверку существования osSelect
+if (!osSelect) {
+  console.warn('osSelect element not found');
+}
+
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
 
 // Класс для создания ICO файлов (добавлен!)

@@ -17,109 +17,115 @@
 </header>
 
 <main>
+  <section class="creator">
+    <h2>Создать новый ярлык</h2>
+    
+    <input id="name" placeholder="Название сайта (например: Google)" autocomplete="off" />
+    <input id="url" placeholder="https://example.com" type="url" autocomplete="off" />
 
-<section class="creator">
-  <h2 style="margin-top: 0; margin-bottom: 15px; color: #e5e7eb;">Создать новый ярлык</h2>
-  
-  <input id="name" placeholder="Название сайта (например: Google)" autocomplete="off" />
-  <input id="url" placeholder="https://example.com" type="url" autocomplete="off" />
+    <div class="form-row">
+      <select id="group">
+        <option>📁 Общее</option>
+        <option>💼 Работа</option>
+        <option>🛒 Покупки</option>
+        <option>🎮 Развлечения</option>
+        <option>📚 Образование</option>
+        <option>💬 Соцсети</option>
+      </select>
 
-  <div class="form-row">
-    <select id="group">
-      <option>📁 Общее</option>
-      <option>💼 Работа</option>
-      <option>🛒 Покупки</option>
-      <option>🎮 Развлечения</option>
-      <option>📚 Образование</option>
-      <option>💬 Соцсети</option>
+      <select id="osSelect">
+        <option value="windows">🪟 Windows</option>
+        <option value="mac">🍎 macOS</option>
+        <option value="linux">🐧 Linux</option>
+      </select>
+    </div>
+
+    <select id="iconType">
+      <option value="favicon">🌐 Favicon сайта (автоматически)</option>
+      <option value="emoji">😀 Emoji (выберите эмодзи)</option>
+      <option value="custom">🖼️ Загрузить свою иконку</option>
     </select>
 
-    <select id="osSelect">
-      <option value="windows">🪟 Windows</option>
-      <option value="mac">🍎 macOS</option>
-      <option value="linux">🐧 Linux</option>
-    </select>
-  </div>
-
-  <select id="iconType">
-    <option value="favicon">🌐 Favicon сайта (автоматически)</option>
-    <option value="emoji">😀 Emoji (выберите эмодзи)</option>
-    <option value="custom">🖼️ Загрузить свою иконку</option>
-  </select>
-
-  <div id="emojiPicker" class="emoji-picker hidden">
-    <span>😀</span><span>😎</span><span>🚀</span><span>🛒</span><span>🎮</span>
-    <span>💼</span><span>📁</span><span>⭐</span><span>❤️</span><span>🔥</span>
-    <span>🌐</span><span>🔍</span><span>📧</span><span>🎵</span><span>📺</span>
-    <span>💻</span><span>📱</span><span>🔒</span><span>💰</span><span>🎯</span>
-  </div>
-
-  <input id="customIcon" type="file" accept="image/png, image/jpeg, image/svg+xml, image/ico" class="hidden" />
-
-  <div id="osInstructions" class="instructions">
-    <!-- Инструкции будут обновляться в зависимости от выбранной ОС -->
-  </div>
-
-  <button id="add">➕ Добавить и скачать ярлык</button>
-  
-  <div class="pro-tip">
-    💡 <strong>Профессиональный совет для Windows:</strong> 
-    Чтобы иконка точно работала в .url файле, скачанные файлы (.url и .png) должны лежать в одной папке.
-    Затем перетащите .url файл на рабочий стол.
-  </div>
-</section>
-
-<section class="shortcuts-section">
-  <h2 style="color: #e5e7eb; margin-bottom: 20px;">
-    📋 Ваши ярлыки (<span id="count">0</span>)
-    <div style="float: right; display: flex; gap: 10px;">
-      <button id="exportAll" style="background: #3b82f6; padding: 8px 16px; font-size: 0.9rem;">📦 Экспорт всех</button>
-      <button id="clearAll" style="background: #ef4444; padding: 8px 16px; font-size: 0.9rem;">🗑️ Очистить все</button>
+    <div id="emojiPicker" class="emoji-picker hidden">
+      <span>😀</span><span>😎</span><span>🚀</span><span>🛒</span><span>🎮</span>
+      <span>💼</span><span>📁</span><span>⭐</span><span>❤️</span><span>🔥</span>
+      <span>🌐</span><span>🔍</span><span>📧</span><span>🎵</span><span>📺</span>
+      <span>💻</span><span>📱</span><span>🔒</span><span>💰</span><span>🎯</span>
     </div>
-  </h2>
-  
-  <div id="grid" class="grid">
-    <!-- Ярлыки будут добавляться сюда -->
-  </div>
-</section>
 
-<section class="os-tips">
-  <h3>🔧 Специфика для каждой ОС</h3>
-  <div class="tips-grid">
-    <div class="tip-card windows-tip">
-      <h4>🪟 Windows</h4>
-      <ul>
-        <li>Формат: <code>.url</code> файл</li>
-        <li>Иконка: Файл <code>.ico</code> или <code>.png</code> рядом с .url</li>
-        <li>Как использовать: Просто перетащите на рабочий стол</li>
-      </ul>
-    </div>
-    <div class="tip-card mac-tip">
-      <h4>🍎 macOS</h4>
-      <ul>
-        <li>Формат: <code>.webloc</code> файл</li>
-        <li>Иконка: Настройка через Get Info</li>
-        <li>Как использовать: Открыть через Finder</li>
-      </ul>
-    </div>
-    <div class="tip-card linux-tip">
-      <h4>🐧 Linux</h4>
-      <ul>
-        <li>Формат: <code>.desktop</code> файл</li>
-        <li>Иконка: Файл .png с указанием пути</li>
-        <li>Как использовать: <code>chmod +x файл.desktop</code></li>
-      </ul>
-    </div>
-  </div>
-</section>
+    <input id="customIcon" type="file" accept="image/png, image/jpeg, image/svg+xml, image/ico" class="hidden" />
 
+    <div id="osInstructions" class="instructions">
+      <!-- Инструкции будут обновляться в зависимости от выбранной ОС -->
+    </div>
+
+    <button id="add">
+      <span>➕</span>
+      <span>Добавить и скачать ярлык</span>
+    </button>
+    
+    <div class="pro-tip">
+      💡 <strong>Профессиональный совет:</strong> 
+      Для Windows: скачанные файлы (.url и .ico/.png) должны лежать в одной папке для работы иконок
+    </div>
+  </section>
+
+  <section class="shortcuts-section">
+    <h2>
+      <span>Ваши ярлыки (<span id="count">0</span>)</span>
+      <div class="controls">
+        <button id="exportAll">
+          <span>📦</span>
+          <span>Экспорт всех</span>
+        </button>
+        <button id="clearAll">
+          <span>🗑️</span>
+          <span>Очистить все</span>
+        </button>
+      </div>
+    </h2>
+    
+    <div id="grid" class="grid">
+      <!-- Ярлыки будут добавляться сюда -->
+    </div>
+  </section>
+
+  <section class="os-tips">
+    <h3>Специфика для каждой ОС</h3>
+    <div class="tips-grid">
+      <div class="tip-card windows-tip">
+        <h4>Windows</h4>
+        <ul>
+          <li>Формат: <code>.url</code> файл</li>
+          <li>Иконка: Файл <code>.ico</code> или <code>.png</code> рядом с .url</li>
+          <li>Как использовать: Просто перетащите на рабочий стол</li>
+        </ul>
+      </div>
+      <div class="tip-card mac-tip">
+        <h4>macOS</h4>
+        <ul>
+          <li>Формат: <code>.webloc</code> файл</li>
+          <li>Иконка: Настройка через Get Info</li>
+          <li>Как использовать: Открыть через Finder</li>
+        </ul>
+      </div>
+      <div class="tip-card linux-tip">
+        <h4>Linux</h4>
+        <ul>
+          <li>Формат: <code>.desktop</code> файл</li>
+          <li>Иконка: Файл .png с указанием пути</li>
+          <li>Как использовать: <code>chmod +x файл.desktop</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
 </main>
 
 <div id="toast"></div>
 
 <script src="app.js"></script>
 <script>
-  // Добавляем кнопки
+  // Добавляем кнопки и функции
   document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clearAll');
     const exportBtn = document.getElementById('exportAll');
@@ -177,6 +183,15 @@
     URL.revokeObjectURL(url);
     
     showToast(`Экспортировано ${shortcuts.length} ярлыков`);
+  }
+  
+  function showToast(text) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+      toast.textContent = text;
+      toast.style.opacity = 1;
+      setTimeout(() => toast.style.opacity = 0, 2000);
+    }
   }
 </script>
 </body>
