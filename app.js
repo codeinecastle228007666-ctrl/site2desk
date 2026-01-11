@@ -121,6 +121,43 @@ function showToast(text) {
   setTimeout(() => toast.style.opacity = 0, 2000);
 }
 
+// Функция обновления счетчика
+function updateCount() {
+  const countEl = document.getElementById('count');
+  if (countEl) {
+    countEl.textContent = shortcuts.length;
+  }
+}
+
+// Функция экспорта всех ярлыков
+function exportAllShortcuts() {
+  if (shortcuts.length === 0) {
+    showToast("Нет ярлыков для экспорта");
+    return;
+  }
+  
+  const data = {
+    version: "1.0",
+    exportDate: new Date().toISOString(),
+    shortcuts: shortcuts
+  };
+  
+  const content = JSON.stringify(data, null, 2);
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `site2desk_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+  
+  showToast(`Экспортировано ${shortcuts.length} ярлыков`);
+}
+
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
   // Устанавливаем детектированную ОС по умолчанию
@@ -173,6 +210,30 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   };
+  
+  // Добавьте обработчики для кнопок экспорта и очистки
+  const clearBtn = document.getElementById('clearAll');
+  const exportBtn = document.getElementById('exportAll');
+  
+  if (clearBtn) {
+    clearBtn.onclick = function() {
+      if (confirm("Удалить ВСЕ ярлыки? Это действие нельзя отменить.")) {
+        localStorage.removeItem('shortcuts');
+        shortcuts = [];
+        render();
+        showToast("Все ярлыки удалены");
+      }
+    };
+  }
+  
+  if (exportBtn) {
+    exportBtn.onclick = function() {
+      exportAllShortcuts();
+    };
+  }
+  
+  // Обновляем счетчик при загрузке
+  updateCount();
   
   render();
 });
@@ -478,6 +539,7 @@ function render() {
   
   if (shortcuts.length === 0) {
     grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #94a3b8;">Пока нет ярлыков. Создайте первый!</p>';
+    updateCount();
     return;
   }
   
@@ -551,6 +613,8 @@ function render() {
       }
     };
   });
+  
+  updateCount();
 }
 
 function getOSIcon(os) {
