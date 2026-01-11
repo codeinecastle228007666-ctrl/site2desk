@@ -4,11 +4,110 @@ const groupSelect = document.getElementById("group");
 const iconType = document.getElementById("iconType");
 const emojiPicker = document.getElementById("emojiPicker");
 const customIcon = document.getElementById("customIcon");
+const osSelect = document.getElementById("osSelect");
 const addBtn = document.getElementById("add");
 const grid = document.getElementById("grid");
 const toast = document.getElementById("toast");
 
 let shortcuts = JSON.parse(localStorage.getItem("shortcuts") || "[]");
+
+// Класс для создания ICO файлов (добавлен!)
+class ICOCreator {
+  static async createICOFromDataURL(dataURL, sizes = [16, 32, 48, 64]) {
+    try {
+      const img = await this.loadImage(dataURL);
+      const iconData = [];
+      
+      for (const size of sizes) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        
+        const pngData = await this.canvasToPNG(canvas);
+        iconData.push({ size, data: pngData });
+      }
+      
+      return this.createICOFile(iconData);
+    } catch (error) {
+      console.error('Error creating ICO:', error);
+      return null;
+    }
+  }
+  
+  static loadImage(dataURL) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataURL;
+    });
+  }
+  
+  static canvasToPNG(canvas) {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsArrayBuffer(blob);
+      }, 'image/png');
+    });
+  }
+  
+  static createICOFile(iconData) {
+    const header = new ArrayBuffer(6);
+    const headerView = new DataView(header);
+    headerView.setUint16(0, 0, true);
+    headerView.setUint16(2, 1, true);
+    headerView.setUint16(4, iconData.length, true);
+    
+    const parts = [header];
+    let offset = 6 + (iconData.length * 16);
+    
+    for (const icon of iconData) {
+      const entry = new ArrayBuffer(16);
+      const entryView = new DataView(entry);
+      
+      entryView.setUint8(0, icon.size);
+      entryView.setUint8(1, icon.size);
+      entryView.setUint8(2, 0);
+      entryView.setUint8(3, 0);
+      entryView.setUint16(4, 1, true);
+      entryView.setUint16(6, 32, true);
+      entryView.setUint32(8, icon.data.byteLength, true);
+      entryView.setUint32(12, offset, true);
+      
+      parts.push(entry);
+      offset += icon.data.byteLength;
+    }
+    
+    for (const icon of iconData) {
+      parts.push(icon.data);
+    }
+    
+    const totalLength = parts.reduce((sum, part) => sum + part.byteLength, 0);
+    const result = new Uint8Array(totalLength);
+    let position = 0;
+    
+    for (const part of parts) {
+      result.set(new Uint8Array(part), position);
+      position += part.byteLength;
+    }
+    
+    return result.buffer;
+  }
+}
+
+// Определяем ОС пользователя
+function detectOS() {
+  const userAgent = window.navigator.userAgent;
+  if (userAgent.includes("Win")) return "windows";
+  if (userAgent.includes("Mac")) return "mac";
+  if (userAgent.includes("Linux")) return "linux";
+  if (userAgent.includes("X11")) return "linux";
+  return "windows";
+}
 
 function showToast(text) {
   toast.textContent = text;
@@ -18,6 +117,13 @@ function showToast(text) {
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
+  // Устанавливаем детектированную ОС по умолчанию
+  const detectedOS = detectOS();
+  if (osSelect) {
+    osSelect.value = detectedOS;
+    updateOSInstructions(detectedOS);
+  }
+  
   iconType.onchange = () => {
     emojiPicker.classList.toggle("hidden", iconType.value !== "emoji");
     customIcon.classList.toggle("hidden", iconType.value !== "custom");
@@ -26,6 +132,12 @@ document.addEventListener('DOMContentLoaded', function() {
       customIcon.value = '';
     }
   };
+  
+  if (osSelect) {
+    osSelect.onchange = function() {
+      updateOSInstructions(this.value);
+    };
+  }
   
   emojiPicker.onclick = e => {
     if (e.target.textContent.trim()) {
@@ -59,9 +171,23 @@ document.addEventListener('DOMContentLoaded', function() {
   render();
 });
 
+function updateOSInstructions(os) {
+  const instructions = document.getElementById('osInstructions');
+  if (!instructions) return;
+  
+  const instructionsText = {
+    windows: `📌 <strong>Для Windows:</strong> Скачанный .url файл можно перетащить на рабочий стол. Иконка будет работать если файл .ico лежит рядом.`,
+    mac: `🍎 <strong>Для macOS:</strong> Скачанный .webloc файл можно открыть через Finder. Для иконок требуется дополнительная настройка.`,
+    linux: `🐧 <strong>Для Linux:</strong> Скачанный .desktop файл нужно сделать исполняемым (chmod +x). Иконки требуют правильного пути.`
+  };
+  
+  instructions.innerHTML = instructionsText[os] || instructionsText.windows;
+}
+
 async function addShortcut() {
   let name = nameInput.value.trim();
   let url = urlInput.value.trim();
+  const os = osSelect ? osSelect.value : detectOS();
 
   if (!name) {
     showToast("Введите название сайта");
@@ -86,8 +212,8 @@ async function addShortcut() {
   }
 
   let icon = "🌐";
-  let iconUrl = "";
   let iconData = null;
+  let faviconUrl = null;
 
   if (iconType.value === "emoji") {
     icon = emojiPicker.dataset.value || "🌐";
@@ -96,11 +222,10 @@ async function addShortcut() {
     icon = "🌐";
     try {
       const hostname = new URL(url).hostname;
-      iconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+      faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
       
-      // Пробуем скачать favicon и конвертировать в data URL
       showToast("Скачиваю иконку...");
-      iconData = await fetchFaviconAsDataURL(iconUrl);
+      iconData = await fetchFaviconAsDataURL(faviconUrl);
     } catch {
       iconData = null;
     }
@@ -119,15 +244,18 @@ async function addShortcut() {
     name,
     url,
     group: groupSelect.value,
-    icon: iconData || (iconType.value === 'favicon' ? iconUrl : icon),
-    iconType: iconType.value
+    icon: iconData || icon,
+    iconType: iconType.value,
+    os,
+    faviconUrl: faviconUrl,
+    createdAt: new Date().toISOString()
   };
   
   shortcuts.push(item);
   localStorage.setItem("shortcuts", JSON.stringify(shortcuts));
 
   render();
-  await downloadShortcutWithIcon(item);
+  await createShortcutForOS(item);
   resetForm();
 }
 
@@ -166,60 +294,134 @@ function resetForm() {
   }
 }
 
-async function downloadShortcutWithIcon({ name, url, icon, iconType }) {
+async function createShortcutForOS({ name, url, icon, iconType, os, faviconUrl }) {
   try {
-    let iconContent = "";
-    let fileName = `${name.replace(/[^\w\s]/gi, '')}.url`;
+    const cleanName = name.replace(/[^\w\s-]/gi, '');
     
-    if (iconType === 'favicon' && icon && icon.startsWith("data:")) {
-      // Конвертируем data URL в ICO файл и скачиваем его
-      const icoFileName = `${name.replace(/[^\w\s]/gi, '')}.ico`;
-      
-      // Создаем .url файл
-      const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${icoFileName}\r\nIconIndex=0`;
-      
-      // Создаем ICO файл из data URL
-      const icoBlob = dataURLToBlob(icon);
-      
-      // Скачиваем оба файла
-      downloadFile(`${name}.url`, urlContent, 'text/plain');
-      await downloadBlob(icoFileName, icoBlob);
-      
-    } else if (iconType === 'custom' && icon && icon.startsWith("data:")) {
-      // Для кастомных иконок
-      const ext = icon.match(/^data:image\/(\w+);/)[1];
-      const iconFileName = `${name.replace(/[^\w\s]/gi, '')}.${ext}`;
-      
-      const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${iconFileName}\r\nIconIndex=0`;
-      
-      const iconBlob = dataURLToBlob(icon);
-      
-      downloadFile(`${name}.url`, urlContent, 'text/plain');
-      await downloadBlob(iconFileName, iconBlob);
-      
-    } else if (iconType === 'emoji') {
-      // Для эмодзи используем системные иконки
-      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
-      downloadFile(fileName, urlContent, 'text/plain');
-    } else {
-      // Без иконки
-      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
-      downloadFile(fileName, urlContent, 'text/plain');
+    switch(os) {
+      case 'windows':
+        await createWindowsShortcut(cleanName, url, icon, iconType);
+        break;
+      case 'mac':
+        await createMacShortcut(cleanName, url, icon, iconType);
+        break;
+      case 'linux':
+        await createLinuxShortcut(cleanName, url, icon, iconType);
+        break;
+      default:
+        await createWindowsShortcut(cleanName, url, icon, iconType);
     }
     
-    showToast(`Ярлык "${name}" создан!`);
+    showToast(`Ярлык "${name}" создан для ${os}!`);
   } catch (error) {
     console.error("Ошибка создания ярлыка:", error);
-    
-    // Fallback: создаем простой .url без иконки
+    showToast("Ошибка при создании ярлыка");
+  }
+}
+
+// Создание Windows .url файла С иконкой (использует ICOCreator!)
+async function createWindowsShortcut(name, url, icon, iconType) {
+  let iconFile = "";
+  
+  // Если есть иконка, создаем .ico файл
+  if (icon && icon.startsWith("data:")) {
     try {
-      const urlContent = `[InternetShortcut]\r\nURL=${url}`;
+      // Используем ICOCreator для создания настоящего .ico файла
+      const icoData = await ICOCreator.createICOFromDataURL(icon);
+      if (icoData) {
+        const icoBlob = new Blob([icoData], { type: 'image/x-icon' });
+        const icoFileName = `${name}.ico`;
+        
+        const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${icoFileName}\r\nIconIndex=0\r\nHotKey=0\r\nIDList=`;
+        
+        downloadFile(`${name}.url`, urlContent, 'text/plain');
+        
+        setTimeout(() => {
+          downloadBlob(icoFileName, icoBlob);
+        }, 100);
+        
+        return;
+      }
+    } catch (error) {
+      console.warn("ICO creation failed, falling back to PNG", error);
+    }
+    
+    // Fallback: создаем PNG если ICO не получилось
+    try {
+      const pngFileName = `${name}.png`;
+      const iconBlob = dataURLToBlob(icon);
+      
+      const urlContent = `[InternetShortcut]\r\nURL=${url}\r\nIconFile=${pngFileName}\r\nIconIndex=0`;
+      
       downloadFile(`${name}.url`, urlContent, 'text/plain');
-      showToast(`Ярлык создан (без иконки)`);
-    } catch (fallbackError) {
-      showToast("Ошибка при создании ярлыка");
+      
+      setTimeout(() => {
+        downloadBlob(pngFileName, iconBlob);
+      }, 100);
+      
+      return;
+    } catch (error) {
+      console.warn("PNG creation failed, creating simple shortcut", error);
     }
   }
+  
+  // Fallback: простой .url без иконки
+  const urlContent = `[InternetShortcut]\r\nURL=${url}`;
+  downloadFile(`${name}.url`, urlContent, 'text/plain');
+}
+
+// Создание macOS .webloc файла
+async function createMacShortcut(name, url, icon, iconType) {
+  const weblocContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>URL</key>
+    <string>${url}</string>
+</dict>
+</plist>`;
+  
+  downloadFile(`${name}.webloc`, weblocContent, 'application/xml');
+  
+  // Для macOS также создаем .desktop файл как альтернатива
+  const desktopContent = `[Desktop Entry]
+Name=${name}
+Exec=open "${url}"
+Icon=web-browser
+Type=Application
+Terminal=false`;
+  
+  downloadFile(`${name}.desktop`, desktopContent, 'text/plain');
+}
+
+// Создание Linux .desktop файла
+async function createLinuxShortcut(name, url, icon, iconType) {
+  let iconPath = "web-browser";
+  
+  // Если есть иконка, указываем путь
+  if (icon && icon.startsWith("data:")) {
+    const iconFileName = `${name}.png`;
+    const iconBlob = dataURLToBlob(icon);
+    
+    // Скачиваем иконку отдельно
+    setTimeout(() => {
+      downloadBlob(iconFileName, iconBlob);
+    }, 100);
+    
+    iconPath = iconFileName;
+  }
+  
+  const desktopContent = `[Desktop Entry]
+Version=1.0
+Type=Application
+Name=${name}
+Comment=Shortcut to ${url}
+Exec=xdg-open "${url}"
+Icon=${iconPath}
+Terminal=false
+Categories=Network;WebBrowser;`;
+  
+  downloadFile(`${name}.desktop`, desktopContent, 'text/plain');
 }
 
 function dataURLToBlob(dataURL) {
@@ -244,19 +446,23 @@ function downloadFile(filename, content, mimeType) {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
-async function downloadBlob(filename, blob) {
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
 function render() {
@@ -272,6 +478,7 @@ function render() {
   shortcuts.forEach(s => {
     const div = document.createElement("div");
     div.className = "card";
+    div.dataset.id = s.id;
     
     let iconHTML = "";
     if (s.icon && s.icon.startsWith("data:")) {
@@ -285,11 +492,11 @@ function render() {
     div.innerHTML = `
       <div class="icon">${iconHTML}</div>
       <strong>${s.name}</strong>
-      <small>${s.group}</small>
+      <small>${s.group} • ${getOSIcon(s.os)} ${s.os}</small>
       <div class="card-actions">
-        <button class="open-btn" data-url="${s.url}">↗</button>
-        <button class="delete-btn" data-id="${s.id}">×</button>
+        <button class="open-btn" data-url="${s.url}" title="Открыть сайт">↗</button>
         <button class="download-btn" data-id="${s.id}" title="Скачать ярлык">↓</button>
+        <button class="delete-btn" data-id="${s.id}" title="Удалить">×</button>
       </div>
     `;
     
@@ -325,7 +532,7 @@ function render() {
       const shortcut = shortcuts.find(s => s.id === id);
       if (shortcut) {
         showToast("Создаю ярлык...");
-        await downloadShortcutWithIcon(shortcut);
+        await createShortcutForOS(shortcut);
       }
     };
   });
@@ -338,4 +545,13 @@ function render() {
       }
     };
   });
+}
+
+function getOSIcon(os) {
+  const icons = {
+    windows: "🪟",
+    mac: "🍎",
+    linux: "🐧"
+  };
+  return icons[os] || "💻";
 }

@@ -24,14 +24,22 @@
   <input id="name" placeholder="Название сайта (например: Google)" autocomplete="off" />
   <input id="url" placeholder="https://example.com" type="url" autocomplete="off" />
 
-  <select id="group">
-    <option>📁 Общее</option>
-    <option>💼 Работа</option>
-    <option>🛒 Покупки</option>
-    <option>🎮 Развлечения</option>
-    <option>📚 Образование</option>
-    <option>💬 Соцсети</option>
-  </select>
+  <div class="form-row">
+    <select id="group">
+      <option>📁 Общее</option>
+      <option>💼 Работа</option>
+      <option>🛒 Покупки</option>
+      <option>🎮 Развлечения</option>
+      <option>📚 Образование</option>
+      <option>💬 Соцсети</option>
+    </select>
+
+    <select id="osSelect">
+      <option value="windows">🪟 Windows</option>
+      <option value="mac">🍎 macOS</option>
+      <option value="linux">🐧 Linux</option>
+    </select>
+  </div>
 
   <select id="iconType">
     <option value="favicon">🌐 Favicon сайта (автоматически)</option>
@@ -48,22 +56,60 @@
 
   <input id="customIcon" type="file" accept="image/png, image/jpeg, image/svg+xml, image/ico" class="hidden" />
 
-  <button id="add">➕ Добавить ярлык</button>
+  <div id="osInstructions" class="instructions">
+    <!-- Инструкции будут обновляться в зависимости от выбранной ОС -->
+  </div>
+
+  <button id="add">➕ Добавить и скачать ярлык</button>
   
-  <div style="margin-top: 10px; padding: 12px; background: #0c4a6e; border-radius: 8px; font-size: 0.9rem;">
-    💡 <strong>Как использовать:</strong> Заполните форму и нажмите кнопку. Файл .url скачается автоматически. 
-    Перетащите его на рабочий стол!
+  <div class="pro-tip">
+    💡 <strong>Профессиональный совет для Windows:</strong> 
+    Чтобы иконка точно работала в .url файле, скачанные файлы (.url и .png) должны лежать в одной папке.
+    Затем перетащите .url файл на рабочий стол.
   </div>
 </section>
 
 <section class="shortcuts-section">
   <h2 style="color: #e5e7eb; margin-bottom: 20px;">
     📋 Ваши ярлыки (<span id="count">0</span>)
-    <button id="clearAll" style="float: right; background: #ef4444; padding: 8px 16px; font-size: 0.9rem;">🗑️ Очистить все</button>
+    <div style="float: right; display: flex; gap: 10px;">
+      <button id="exportAll" style="background: #3b82f6; padding: 8px 16px; font-size: 0.9rem;">📦 Экспорт всех</button>
+      <button id="clearAll" style="background: #ef4444; padding: 8px 16px; font-size: 0.9rem;">🗑️ Очистить все</button>
+    </div>
   </h2>
   
   <div id="grid" class="grid">
     <!-- Ярлыки будут добавляться сюда -->
+  </div>
+</section>
+
+<section class="os-tips">
+  <h3>🔧 Специфика для каждой ОС</h3>
+  <div class="tips-grid">
+    <div class="tip-card windows-tip">
+      <h4>🪟 Windows</h4>
+      <ul>
+        <li>Формат: <code>.url</code> файл</li>
+        <li>Иконка: Файл <code>.ico</code> или <code>.png</code> рядом с .url</li>
+        <li>Как использовать: Просто перетащите на рабочий стол</li>
+      </ul>
+    </div>
+    <div class="tip-card mac-tip">
+      <h4>🍎 macOS</h4>
+      <ul>
+        <li>Формат: <code>.webloc</code> файл</li>
+        <li>Иконка: Настройка через Get Info</li>
+        <li>Как использовать: Открыть через Finder</li>
+      </ul>
+    </div>
+    <div class="tip-card linux-tip">
+      <h4>🐧 Linux</h4>
+      <ul>
+        <li>Формат: <code>.desktop</code> файл</li>
+        <li>Иконка: Файл .png с указанием пути</li>
+        <li>Как использовать: <code>chmod +x файл.desktop</code></li>
+      </ul>
+    </div>
   </div>
 </section>
 
@@ -73,15 +119,23 @@
 
 <script src="app.js"></script>
 <script>
-  // Добавляем кнопку очистки
+  // Добавляем кнопки
   document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clearAll');
+    const exportBtn = document.getElementById('exportAll');
+    
     if (clearBtn) {
       clearBtn.onclick = function() {
         if (confirm("Удалить ВСЕ ярлыки? Это действие нельзя отменить.")) {
           localStorage.removeItem('shortcuts');
           location.reload();
         }
+      };
+    }
+    
+    if (exportBtn) {
+      exportBtn.onclick = function() {
+        exportAllShortcuts();
       };
     }
     
@@ -94,10 +148,36 @@
       }
     }
     
-    // Обновляем счетчик каждую секунду
     setInterval(updateCount, 1000);
     updateCount();
   });
+  
+  function exportAllShortcuts() {
+    const shortcuts = JSON.parse(localStorage.getItem('shortcuts') || '[]');
+    if (shortcuts.length === 0) {
+      showToast("Нет ярлыков для экспорта");
+      return;
+    }
+    
+    const data = {
+      version: "1.0",
+      exportDate: new Date().toISOString(),
+      shortcuts: shortcuts
+    };
+    
+    const content = JSON.stringify(data, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `site2desk_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast(`Экспортировано ${shortcuts.length} ярлыков`);
+  }
 </script>
 </body>
 </html>
